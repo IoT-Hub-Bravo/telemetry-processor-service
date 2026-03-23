@@ -1,10 +1,10 @@
-# IoT Hub Telemetry Processing Service
+# IoT Hub Telemetry Processor Service
 
 Stream processing service for telemetry validation, deduplication, and routing across Kafka topics.
 
 ## Purpose
 
-The Telemetry Processing Service transforms raw telemetry messages into validated internal platform events.
+The Telemetry Processor Service transforms raw telemetry messages into validated internal platform events.
 
 ## Responsibilities
 
