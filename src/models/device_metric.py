@@ -1,6 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
-from database import Base
+from sqlalchemy.dialects.postgresql import UUID
+from src.database import Base
 
 class DeviceMetric(Base):
     __tablename__ = "device_metrics"

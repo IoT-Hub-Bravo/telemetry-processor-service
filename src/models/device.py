@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from database import Base
+from src.database import Base
 
 class Device(Base):
     __tablename__ = "devices"

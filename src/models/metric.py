@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer
-from database import Base
+from src.database import Base
 
 class Metric(Base):
     __tablename__ = "metrics"
