@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    container_name: telemetry_service
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - TELEMETRY_MAX_AGE_SECONDS=${TELEMETRY_MAX_AGE_SECONDS}
+    volumes:
+      - .:/app
+    command: >
+      sh -c "uvicorn src.main:app --host ${APP_HOST} --port ${APP_PORT}"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    container_name: telemetry_postgres
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: telemetry_redis
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_PORT}:6379"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
