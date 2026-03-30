@@ -15,3 +15,5 @@ python-dateutil==2.9.0
 
 # optional but recommended
 orjson==3.10.3
+
+iot-hub-shared[celery] @ git+https://github.com/IoT-Hub-Bravo/python-service-libs.git@v0.2.0"
