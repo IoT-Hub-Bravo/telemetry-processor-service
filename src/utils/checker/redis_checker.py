@@ -1,10 +1,10 @@
-from checker_config import RedisConfig
-from idempotency_store import RedisIdempotencyStore
-from duplicate_checker import DuplicateChecker
-from django.conf import settings
+from src.utils.checker.checker_config import RedisConfig
+from src.utils.checker.idempotency_store import RedisIdempotencyStore
+from src.utils.checker.duplicate_checker import DuplicateChecker
+from src.config import REDIS_HOST, REDIS_PORT
 
-redis_host = settings.REDIS_HOST
-redis_port = settings.REDIS_PORT
+redis_host = REDIS_HOST
+redis_port = REDIS_PORT
 
 
 def build_redis_checker() -> DuplicateChecker:

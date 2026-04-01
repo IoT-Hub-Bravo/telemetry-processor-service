@@ -1,4 +1,7 @@
 import os
+from decouple import config
+
+TELEMETRY_MAX_AGE_SECONDS = config("TELEMETRY_MAX_AGE_SECONDS", default=300, cast=int)
 
 DB_USER = os.getenv("DB_USER", "user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
@@ -19,4 +22,5 @@ ALEMBIC_DATABASE_URL = os.getenv(
     f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
-TELEMETRY_MAX_AGE_SECONDS = os.getenv("TELEMETRY_MAX_AGE_SECONDS", 300, cast=int)
+REDIS_HOST= os.getenv("REDIS_HOST", "redis")
+REDIS_PORT= config("REDIS_PORT", 6379)

@@ -1,7 +1,8 @@
 from collections import defaultdict
 from typing import Any
+from datetime import datetime, timedelta, timezone
 
-import BaseValidator
+from iot_hub_shared.serializer_kit.base_validator import BaseValidator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -15,11 +16,14 @@ from src.utils.checker.redis_checker import build_redis_checker
 
 class TelemetryBatchValidator(BaseValidator):
     def __init__(self, payload: list[dict]):
+        self._checker = build_redis_checker()
         self._payload = payload
         self._retry_data = []
         self._invalid_data = []
         self._validated_data = []
         self._expired_data = []
+        self._existing_devices = set()
+        self._device_metric_map = {}
 
     @property
     def invalid_data(self):
@@ -33,23 +37,23 @@ class TelemetryBatchValidator(BaseValidator):
     def expired_data(self):
         return self._expired_data
     
-    def validate(self):
-        self._validated_rows.clear()
-        self._invalid_rows.clear()
+    def validate(self, engine):
+        self._validated_data.clear()
+        self._invalid_data.clear()
 
-        self._load_devices_and_metrics()
+        with Session(engine) as session:
+            self._load_devices(session)
+            self._load_device_metrics(session)
 
         self._validate_payload()
-
         self._split_expired()
-
         self._validate_duplicates()
 
     def _load_devices(self, session: Session):
         device_serials = {
-            item.get("device_serial")
+            item.get("device_serial_id")
             for item in self._payload
-            if item.get("device_serial")
+            if item.get("device_serial_id")
         }
 
         if not device_serials:
@@ -66,31 +70,37 @@ class TelemetryBatchValidator(BaseValidator):
             return
 
         stmt = (
-            select(Device.serial_number, Metric.name)
+            select(
+                Device.serial_number,
+                Metric.name,
+                Metric.unit,
+                Metric.data_type,
+                DeviceMetric.id,
+            )
             .join(DeviceMetric, Device.id == DeviceMetric.device_id)
             .join(Metric, Metric.id == DeviceMetric.metric_id)
             .where(Device.serial_number.in_(self._existing_devices))
         )
 
-        device_metric_map = defaultdict(set)
+        device_metric_map = defaultdict(dict)
 
-        for serial, metric_name in session.execute(stmt):
-            device_metric_map[serial].add(metric_name)
+        for serial, name, unit, data_type, dm_id in session.execute(stmt):
+            device_metric_map[serial][name] = {
+                "unit": self._normalize_unit(unit),
+                "data_type": data_type,
+                "device_metric_id": dm_id,
+            }
 
         self._device_metric_map = dict(device_metric_map)
 
-    def _load_devices_and_metrics(self):
-        self._load_devices()
-        self._load_device_metrics()
-
     def _validate_payload(self) -> None:
-        for index, item in enumerate(self._initial_data):
+        for index, item in enumerate(self._payload):
             serial = item.get("device_serial_id")
             metrics = item.get("metrics") or []
             ts = item.get("ts")
 
             # device check
-            if serial not in self._validated_devices:
+            if serial not in self._existing_devices:
                 self._add_invalid_record(
                     index=index,
                     serial=serial,
@@ -102,7 +112,7 @@ class TelemetryBatchValidator(BaseValidator):
                 )
                 continue
 
-            device_metrics_map = self._initial_device_metrics.get(serial, {})
+            device_metrics_map = self._device_metric_map.get(serial, {})
 
             for metric in metrics:
                 metric_name = metric.get("name")
@@ -110,18 +120,6 @@ class TelemetryBatchValidator(BaseValidator):
                 unit = metric.get("unit")
 
                 # basic metric structure validation
-                if not metric_name:
-                    self._add_invalid_record(
-                        index=index,
-                        serial=serial,
-                        ts=ts,
-                        metric=None,
-                        value=value,
-                        unit=unit,
-                        error="missing_metric_name",
-                    )
-                    continue
-
                 device_metric_data = device_metrics_map.get(metric_name)
 
                 if not device_metric_data:
@@ -137,9 +135,8 @@ class TelemetryBatchValidator(BaseValidator):
                     continue
 
                 normalized_payload_unit = self._normalize_unit(unit)
-                normalized_db_unit = self._normalize_unit(device_metric_data["unit"])
 
-                if normalized_payload_unit != normalized_db_unit:
+                if normalized_payload_unit != device_metric_data["unit"]:
                     self._add_invalid_record(
                         index=index,
                         serial=serial,
@@ -178,18 +175,20 @@ class TelemetryBatchValidator(BaseValidator):
     def _validate_duplicates(self) -> None:
         """
         Check for duplicate telemetry entries using Redis-based DuplicateChecker.
-        Moves duplicates to _invalid_rows and keeps only unique validated rows.
+        Moves duplicates to _invalid_data and keeps only unique validated data.
         """
-        checker = build_redis_checker()
+        checker = self._checker
         unique_valid_items = []
 
-        for index, item in enumerate(self._validated_rows):
+        for index, item in enumerate(self._validated_data):
             dm_id = item.get("device_metric_id")
             ts = item.get("ts")
             serial = item.get("device_serial_id")
-            value = item.get("value_jsonb", {}).get("v")
+            value = item.get("value")
 
-            result = checker.process(f"{dm_id},{ts}")
+            ts_key = ts.isoformat() if ts else "null"
+            key = f"{dm_id},{ts_key}" if ts_key != "null" else f"{dm_id},no_ts"
+            result = checker.process(f"{dm_id},{key}")
             if not result:
                 self._add_invalid_record(
                     index=index,
@@ -204,7 +203,7 @@ class TelemetryBatchValidator(BaseValidator):
 
             unique_valid_items.append(item)
 
-        self._validated_rows = unique_valid_items
+        self._validated_data = unique_valid_items
 
     def _value_matches_data_type(self, value: Any, data_type: str) -> bool:
         type_checkers = {
@@ -223,7 +222,7 @@ class TelemetryBatchValidator(BaseValidator):
 
     def _split_expired(self) -> None:
         window_seconds = TELEMETRY_MAX_AGE_SECONDS
-        now = timezone.now()
+        now = datetime.now(timezone.utc)
         threshold = now - timedelta(seconds=window_seconds)
 
         fresh = []
