@@ -18,3 +18,5 @@ ALEMBIC_DATABASE_URL = os.getenv(
     "ALEMBIC_DATABASE_URL",
     f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
+
+TELEMETRY_MAX_AGE_SECONDS = os.getenv("TELEMETRY_MAX_AGE_SECONDS", 300, cast=int)
