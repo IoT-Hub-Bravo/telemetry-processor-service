@@ -1,8 +1,9 @@
 from typing import Any
 
-import BaseSerializer, JSONSerializer
-import normalize_str
-import parse_iso8601_utc
+from iot_hub_shared.serializer_kit.base_serializer import BaseSerializer
+from iot_hub_shared.serializer_kit.json_serializer import JSONSerializer
+from iot_hub_shared.utils_kit.normalization import normalize_str
+from iot_hub_shared.utils_kit.normalization import parse_iso8601_utc
 
 class MetricSerializer(JSONSerializer):
     REQUIRED_FIELDS = {
