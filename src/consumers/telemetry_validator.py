@@ -6,10 +6,9 @@ from decouple import config
 
 from iot_hub_shared.kafka_kit.kafka_consumer import KafkaConsumer
 from iot_hub_shared.kafka_kit.config import ConsumerConfig
-from iot_hub_shared.kafka_kit.message_handlers import CeleryPayloadHandler
+from src.consumers.validator_handler import ValidatorPayloadHandler
 
 
-from src.tasks import validate_telemetry_payload  # noqa
 
 RAW_TOPIC = config('KAFKA_TOPIC_TELEMETRY_RAW', default='telemetry.raw')
 RETRY_TOPIC = config('KAFKA_TOPIC_TELEMETRY_RETRY', default='telemetry.retry')
@@ -23,7 +22,7 @@ def main():
     consumer = KafkaConsumer(
         config=ConsumerConfig(),
         topics=[RAW_TOPIC, RETRY_TOPIC],
-        handler=CeleryPayloadHandler(validate_telemetry_payload),
+        handler=ValidatorPayloadHandler(),
         consume_timeout=CONSUME_TIMEOUT,
         decode_json=DECODE_JSON,
         consume_batch=CONSUME_BATCH,

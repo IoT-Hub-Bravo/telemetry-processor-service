@@ -23,3 +23,8 @@ REDIS_CELERY_DB = config("REDIS_CELERY_DB", default=1, cast=int)
 
 REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 REDIS_CELERY_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
+
+TELEMETRY_CLEAN_TOPIC = config('KAFKA_TOPIC_TELEMETRY_CLEAN', default='telemetry.clean')
+TELEMETRY_DLQ_TOPIC = config('KAFKA_TOPIC_TELEMETRY_DLQ', default='telemetry.dlq')
+TELEMETRY_EXPIRED_TOPIC = config('KAFKA_TOPIC_TELEMETRY_EXPIRED', default='telemetry.expired')
+TELEMETRY_RETRY_TOPIC = config('KAFKA_TOPIC_TELEMETRY_RETRY', default='telemetry.retry')

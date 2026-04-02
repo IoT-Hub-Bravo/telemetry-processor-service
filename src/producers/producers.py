@@ -10,8 +10,6 @@ telemetry_dlq_topic = config('KAFKA_TOPIC_TELEMETRY_DLQ', default='telemetry.dlq
 telemetry_expired_topic = config('KAFKA_TOPIC_TELEMETRY_EXPIRED', default='telemetry.expired')
 telemetry_retry_topic = config('KAFKA_TOPIC_TELEMETRY_RETRY', default='telemetry.retry')
 
-# TODO: Shutdown
-
 
 @lru_cache(maxsize=1)
 def get_telemetry_clean_producer() -> KafkaProducer:
