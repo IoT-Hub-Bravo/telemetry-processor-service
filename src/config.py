@@ -19,10 +19,8 @@ ALEMBIC_DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}
 REDIS_HOST= os.getenv("REDIS_HOST", "redis")
 REDIS_PORT= config("REDIS_PORT", default=6379, cast=int)
 REDIS_DB = config("REDIS_DB", default=0, cast=int)
-REDIS_CELERY_DB = config("REDIS_CELERY_DB", default=1, cast=int)
 
 REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-REDIS_CELERY_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
 
 TELEMETRY_CLEAN_TOPIC = config('KAFKA_TOPIC_TELEMETRY_CLEAN', default='telemetry.clean')
 TELEMETRY_DLQ_TOPIC = config('KAFKA_TOPIC_TELEMETRY_DLQ', default='telemetry.dlq')

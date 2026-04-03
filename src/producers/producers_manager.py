@@ -3,7 +3,7 @@ import logging
 
 from src.serializers.telemetry_serializer import TelemetryBatchSerializer
 from src.services.telemetry_services import telemetry_validate
-from src.producers import (
+from src.producers.producers import (
     get_telemetry_clean_producer,
     get_telemetry_dlq_producer,
     get_telemetry_expired_producer,

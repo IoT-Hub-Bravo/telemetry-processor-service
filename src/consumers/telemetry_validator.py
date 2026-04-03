@@ -1,12 +1,12 @@
 import os
 import signal
 
-import django
 from decouple import config
 
-from iot_hub_shared.kafka_kit.kafka_consumer import KafkaConsumer
+from iot_hub_shared.kafka_kit.consumer import KafkaConsumer
 from iot_hub_shared.kafka_kit.config import ConsumerConfig
 from src.consumers.validator_handler import ValidatorPayloadHandler
+from src.producers.producers_manager import TelemetryProducers
 
 
 
@@ -22,7 +22,7 @@ def main():
     consumer = KafkaConsumer(
         config=ConsumerConfig(),
         topics=[RAW_TOPIC, RETRY_TOPIC],
-        handler=ValidatorPayloadHandler(),
+        handler=ValidatorPayloadHandler(producers=TelemetryProducers()),
         consume_timeout=CONSUME_TIMEOUT,
         decode_json=DECODE_JSON,
         consume_batch=CONSUME_BATCH,

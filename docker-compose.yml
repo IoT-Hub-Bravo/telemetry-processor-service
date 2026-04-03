@@ -43,21 +43,5 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
-  celery_worker:
-    build:
-      context: .
-      dockerfile: docker/python/Dockerfile
-    container_name: telemetry_celery_worker
-    depends_on:
-      - redis
-      - postgres
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    command: >
-      sh -c "celery -A src.celery_app worker --loglevel=info"
-    restart: unless-stopped
-
 volumes:
   postgres_data:
