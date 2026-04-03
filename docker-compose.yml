@@ -15,8 +15,6 @@ services:
       - .env
     volumes:
       - .:/app
-    command: >
-      sh -c "uvicorn src.main:app --host ${APP_HOST} --port ${APP_PORT}"
     restart: unless-stopped
 
   postgres:

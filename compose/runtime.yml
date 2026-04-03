@@ -2,7 +2,9 @@ name: ${COMPOSE_PROJECT_NAME:-telemetry-processor-service}
 
 services:
   kafka-telemetry-clean-ws:
-    <<: *django_base
+    build:
+      context: ..
+      dockerfile: docker/python/Dockerfile
     image: iot-hub-kafka-telemetry-clean-ws
     container_name: kafka-telemetry-clean-ws
     command: [ "python", "-m", "src.consumers.telemetry_validator" ]
@@ -11,8 +13,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-
-volumes:
+    networks:
+      - iot-hub-nw
 
 networks:
   iot-hub-nw:
