@@ -9,7 +9,7 @@ from src.producers.producers import (
     get_telemetry_expired_producer,
     get_telemetry_retry_producer,
 )
-from iot_hub_shared.kafka_kit.producer import KafkaProducer
+from iot_hub_shared.kafka_kit.producer import KafkaProducer, ProduceResult
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class TelemetryProducers:
         for index, record in enumerate(data):
             payload = {**record, "ts": record["ts"].isoformat()}
             result = producer.produce(payload=payload, key=record.get("device_serial_id"))
-            if result == producer.ENQUEUED:
+            if result == ProduceResult.ENQUEUED:
                 accepted += 1
             else:
                 errors[index] = getattr(result, "value", str(result))

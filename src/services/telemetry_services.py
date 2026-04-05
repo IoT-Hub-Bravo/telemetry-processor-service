@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from src.services.telemetry_validator import TelemetryBatchValidator
+from src.database import db_engine
 
 import logging
 
@@ -19,7 +20,7 @@ def telemetry_validate(payload: dict | list[dict]) -> TelemetryValidationResult:
         payload_list = payload
 
     validator = TelemetryBatchValidator(payload=payload_list)
-    validator.validate()
+    validator.validate(engine=db_engine)
 
     if validator.errors:
         logger.warning(
@@ -30,11 +31,11 @@ def telemetry_validate(payload: dict | list[dict]) -> TelemetryValidationResult:
 
     logger.info(
         "Telemetry validation completed. %d valid rows ready for creation.",
-        len(validator.validated_rows),
+        len(validator.validated_data),
     )
 
     return TelemetryValidationResult(
-        validated_rows=validator.validated_rows,
-        errors=validator.invalid_rows,
-        expired_rows=validator.expired_rows,
+        validated_rows=validator.validated_data,
+        errors=validator.invalid_data,
+        expired_rows=validator.expired_data,
     )

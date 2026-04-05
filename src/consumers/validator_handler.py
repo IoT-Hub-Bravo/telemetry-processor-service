@@ -28,7 +28,7 @@ class ValidatorPayloadHandler:
         serializer = TelemetryBatchSerializer(normalized)
         serializer.is_valid()
 
-        validation_result = telemetry_validate(payload=serializer.valid_items)
+        validation_result = telemetry_validate(payload=serializer.validated_data)
 
         if validation_result.validated_rows:
             self.producers.produce_clean(validation_result.validated_rows)

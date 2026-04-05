@@ -16,6 +16,7 @@ from src.utils.checker.redis_checker import build_redis_checker
 
 class TelemetryBatchValidator(BaseValidator):
     def __init__(self, payload: list[dict]):
+        self._errors = []
         self._checker = build_redis_checker()
         self._payload = payload
         self._retry_data = []
