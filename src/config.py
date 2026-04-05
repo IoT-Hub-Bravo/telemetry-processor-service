@@ -5,7 +5,7 @@ TELEMETRY_MAX_AGE_SECONDS = config("TELEMETRY_MAX_AGE_SECONDS", default=300, cas
 
 DB_USER = os.getenv("DB_USER", "user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
-DB_NAME = os.getenv("DB_DB", "telemetry")
+DB_NAME = os.getenv("DB_NAME", "telemetry")
 DB_HOST = os.getenv("DB_HOST", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
