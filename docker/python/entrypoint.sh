@@ -15,11 +15,5 @@ for i in $(seq 1 $MAX_RETRIES); do
   sleep $RETRY_DELAY
 done
 
-echo "Running migrations..."
-alembic upgrade head || {
-  echo "Migration failed"
-  exit 1
-}
-
 echo "Starting application..."
 exec "$@"

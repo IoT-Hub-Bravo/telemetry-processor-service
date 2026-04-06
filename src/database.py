@@ -10,5 +10,8 @@ db_engine = create_engine(ALEMBIC_DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(
     bind=engine, class_=AsyncSession, expire_on_commit=False
 )
+SessionLocal = sessionmaker(
+    bind=db_engine, class_=Session, expire_on_commit=False
+)
 
 Base = declarative_base()

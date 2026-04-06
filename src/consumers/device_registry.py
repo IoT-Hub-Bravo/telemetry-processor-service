@@ -2,9 +2,8 @@ import signal
 
 from decouple import config
 
-from iot_hub_shared.kafka_kit.kafka_consumer import KafkaConsumer
+from iot_hub_shared.kafka_kit.consumer import KafkaConsumer
 from iot_hub_shared.kafka_kit.config import ConsumerConfig
-from iot_hub_shared.kafka_kit.message_handlers import CeleryPayloadHandler
 
 from src.services.device_registry import update_database
 from src.consumers.device_registry_handler import DeviceRegistryHandler

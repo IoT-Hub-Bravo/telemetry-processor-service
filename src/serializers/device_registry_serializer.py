@@ -1,47 +1,43 @@
+
 from typing import Any
 
-from iot_hub_shared.serializer_kit.base_serializer import BaseSerializer
 from iot_hub_shared.serializer_kit.json_serializer import JSONSerializer
-from iot_hub_shared.utils_kit.normalization import normalize_str
-from iot_hub_shared.utils_kit.normalization import parse_iso8601_utc
+from iot_hub_shared.serializer_kit.base_serializer import BaseSerializer
+
+from iot_hub_shared.utils_kit.normalization import normalize_str, parse_iso8601_utc
 from src.serializers.metric_serializer import MetricSerializer
 
 
-
-class TelemetryItemSerializer(JSONSerializer):
+class DeviceRegistryItemSerializer(JSONSerializer):
     REQUIRED_FIELDS = {
         "device_serial_id": str,
         "metrics": list,
     }
 
     OPTIONAL_FIELDS = {
-        "ts": (str, type(None)),
+        "created_at": (str, type(None)),
     }
 
     def _validate_fields(self, data: dict) -> dict:
         serial = normalize_str(data.get("device_serial_id"))
         metrics = data.get("metrics") or []
-        ts_raw = data.get("ts")
+        created_raw = data.get("created_at")
 
-        # --- serial ---
         if not serial:
             self._errors["device_serial_id"] = "Device serial cannot be empty."
 
-        # --- ts ---
-        ts = None
-        if ts_raw:
-            ts = parse_iso8601_utc(ts_raw)
-            if ts is None:
-                self._errors["ts"] = "Invalid ISO8601 timestamp."
+        created_at = None
+        if created_raw:
+            created_at = parse_iso8601_utc(created_raw)
+            if created_at is None:
+                self._errors["created_at"] = "Invalid ISO8601 timestamp."
 
-        # --- metrics ---
         if not isinstance(metrics, list):
             self._errors["metrics"] = "Metrics must be a list."
             return {}
 
         validated_metrics = []
         metric_errors = []
-
         seen = set()
 
         for idx, metric in enumerate(metrics):
@@ -54,7 +50,6 @@ class TelemetryItemSerializer(JSONSerializer):
             metric_data = serializer.validated_data
             name = metric_data["name"]
 
-            # duplicate check
             if name in seen:
                 metric_errors.append({idx: "Duplicate metric name."})
                 continue
@@ -67,30 +62,34 @@ class TelemetryItemSerializer(JSONSerializer):
 
         return {
             "device_serial_id": serial,
-            "ts": ts,
+            "created_at": created_at,
             "metrics": validated_metrics,
         }
     
-class TelemetryBatchSerializer(BaseSerializer):
+
+class DeviceRegistryBatchSerializer(BaseSerializer):
     def _validate(self, data: Any):
         if not isinstance(data, list):
             self._errors["non_field_errors"] = "Payload must be a list."
             return None
 
-        validated_items = []
-        errors = []
+        valid_items = []
+        invalid_items = []
 
         for idx, item in enumerate(data):
-            serializer = TelemetryItemSerializer(item)
+            serializer = DeviceRegistryItemSerializer(item)
 
             if not serializer.is_valid():
-                errors.append({idx: serializer.errors})
+                invalid_items.append({
+                    "index": idx,
+                    "errors": serializer.errors,
+                    "payload": item,
+                })
                 continue
 
-            validated_items.append(serializer.validated_data)
+            valid_items.append(serializer.validated_data)
 
-        if errors:
-            self._errors["items"] = errors
-            return None
-
-        return validated_items
+        return {
+            "valid": valid_items,
+            "invalid": invalid_items,
+        }
