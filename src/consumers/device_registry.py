@@ -1,15 +1,13 @@
-import os
 import signal
 
-import django
 from decouple import config
 
 from iot_hub_shared.kafka_kit.kafka_consumer import KafkaConsumer
 from iot_hub_shared.kafka_kit.config import ConsumerConfig
 from iot_hub_shared.kafka_kit.message_handlers import CeleryPayloadHandler
 
-
-from src.tasks import update_database  # noqa
+from src.services.device_registry import update_database
+from src.consumers.device_registry_handler import DeviceRegistryHandler
 
 TOPIC = config('KAFKA_TOPIC_DEVICE_REGISTRY', default='device.registry')
 CONSUME_TIMEOUT = config('KAFKA_CONSUMER_CONSUME_TIMEOUT', default=1.0, cast=float)
@@ -22,7 +20,7 @@ def main():
     consumer = KafkaConsumer(
         config=ConsumerConfig(),
         topics=[TOPIC],
-        handler=CeleryPayloadHandler(update_database),
+        handler=DeviceRegistryHandler(),
         consume_timeout=CONSUME_TIMEOUT,
         decode_json=DECODE_JSON,
         consume_batch=CONSUME_BATCH,
