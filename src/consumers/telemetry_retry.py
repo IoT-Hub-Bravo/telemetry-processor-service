@@ -9,7 +9,6 @@ from src.producers.producers_manager import TelemetryProducers
 
 
 
-RAW_TOPIC = config('KAFKA_TOPIC_TELEMETRY_RAW', default='telemetry.raw')
 RETRY_TOPIC = config('KAFKA_TOPIC_TELEMETRY_RETRY', default='telemetry.retry')
 CONSUME_TIMEOUT = config('KAFKA_CONSUMER_CONSUME_TIMEOUT', default=1.0, cast=float)
 DECODE_JSON = config('KAFKA_CONSUMER_DECODE_JSON', default=True, cast=bool)
@@ -20,7 +19,7 @@ BATCH_MAX_SIZE = config('KAFKA_CONSUMER_BATCH_MAX_SIZE', default=100, cast=int)
 def main():
     consumer = KafkaConsumer(
         config=ConsumerConfig(),
-        topics=[RAW_TOPIC, RETRY_TOPIC],
+        topics=[RETRY_TOPIC],
         handler=ValidatorPayloadHandler(producers=TelemetryProducers()),
         consume_timeout=CONSUME_TIMEOUT,
         decode_json=DECODE_JSON,

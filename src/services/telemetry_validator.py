@@ -15,32 +15,42 @@ from src.utils.checker.redis_checker import build_redis_checker
 
 
 class TelemetryBatchValidator(BaseValidator):
+    RETRYABLE_ERRORS = {"device_not_found", "metric_not_configured"}
+
     def __init__(self, payload: list[dict]):
+        self._payload = payload
         self._errors = []
         self._checker = build_redis_checker()
-        self._payload = payload
-        self._retry_data = []
-        self._invalid_data = []
-        self._validated_data = []
-        self._expired_data = []
-        self._existing_devices = set()
-        self._device_metric_map = {}
+
+        self._retry_data: list[dict] = []
+        self._invalid_data: list[dict] = []
+        self._validated_data: list[dict] = []
+        self._expired_data: list[dict] = []
+
+        self._existing_devices: set[str] = set()
+        self._device_metric_map: dict[str, dict] = {}
 
     @property
     def invalid_data(self):
         return self._invalid_data
-    
+
+    @property
+    def retry_data(self):
+        return self._retry_data
+
     @property
     def validated_data(self):
         return self._validated_data
-    
+
     @property
     def expired_data(self):
         return self._expired_data
-    
+
     def validate(self, engine):
         self._validated_data.clear()
         self._invalid_data.clear()
+        self._retry_data.clear()
+        self._expired_data.clear()
 
         with Session(engine) as session:
             self._load_devices(session)
@@ -60,10 +70,7 @@ class TelemetryBatchValidator(BaseValidator):
         if not device_serials:
             return
 
-        stmt = select(Device.serial_number).where(
-            Device.serial_number.in_(device_serials)
-        )
-
+        stmt = select(Device.serial_number).where(Device.serial_number.in_(device_serials))
         self._existing_devices = set(session.scalars(stmt).all())
 
     def _load_device_metrics(self, session: Session):
@@ -84,7 +91,6 @@ class TelemetryBatchValidator(BaseValidator):
         )
 
         device_metric_map = defaultdict(dict)
-
         for serial, name, unit, data_type, dm_id in session.execute(stmt):
             device_metric_map[serial][name] = {
                 "unit": self._normalize_unit(unit),
@@ -100,17 +106,9 @@ class TelemetryBatchValidator(BaseValidator):
             metrics = item.get("metrics") or []
             ts = item.get("ts")
 
-            # device check
+            # --- device exists? ---
             if serial not in self._existing_devices:
-                self._add_invalid_record(
-                    index=index,
-                    serial=serial,
-                    ts=ts,
-                    metric=None,
-                    value=None,
-                    unit=None,
-                    error="device_not_found",
-                )
+                self._add_retry_item(index, item, "device_not_found")
                 continue
 
             device_metrics_map = self._device_metric_map.get(serial, {})
@@ -120,19 +118,10 @@ class TelemetryBatchValidator(BaseValidator):
                 value = metric.get("value")
                 unit = metric.get("unit")
 
-                # basic metric structure validation
                 device_metric_data = device_metrics_map.get(metric_name)
 
                 if not device_metric_data:
-                    self._add_invalid_record(
-                        index=index,
-                        serial=serial,
-                        ts=ts,
-                        metric=metric_name,
-                        value=value,
-                        unit=unit,
-                        error="metric_not_configured",
-                    )
+                    self._add_retry_item(index, item, "metric_not_configured")
                     continue
 
                 normalized_payload_unit = self._normalize_unit(unit)
@@ -149,9 +138,7 @@ class TelemetryBatchValidator(BaseValidator):
                     )
                     continue
 
-                if not self._value_matches_data_type(
-                    value, device_metric_data["data_type"]
-                ):
+                if not self._value_matches_data_type(value, device_metric_data["data_type"]):
                     self._add_invalid_record(
                         index=index,
                         serial=serial,
@@ -174,10 +161,7 @@ class TelemetryBatchValidator(BaseValidator):
                 )
 
     def _validate_duplicates(self) -> None:
-        """
-        Check for duplicate telemetry entries using Redis-based DuplicateChecker.
-        Moves duplicates to _invalid_data and keeps only unique validated data.
-        """
+        """Check duplicates via Redis DuplicateChecker"""
         checker = self._checker
         unique_valid_items = []
 
@@ -217,9 +201,7 @@ class TelemetryBatchValidator(BaseValidator):
     def _normalize_unit(self, unit: str | None) -> str | None:
         if not unit:
             return None
-        return REVERSE_UNIT_ALIASES.get(
-            unit.strip().lower().replace("°", ""), unit.strip().lower()
-        )
+        return REVERSE_UNIT_ALIASES.get(unit.strip().lower().replace("°", ""), unit.strip().lower())
 
     def _split_expired(self) -> None:
         window_seconds = TELEMETRY_MAX_AGE_SECONDS
@@ -231,7 +213,6 @@ class TelemetryBatchValidator(BaseValidator):
 
         for item in self._validated_data:
             ts = item.get("ts")
-
             if ts is None:
                 fresh.append(item)
                 continue
@@ -243,8 +224,6 @@ class TelemetryBatchValidator(BaseValidator):
 
         self._validated_data = fresh
         self._expired_data = expired
-
-
 
     def _add_invalid_record(
         self,
@@ -269,4 +248,9 @@ class TelemetryBatchValidator(BaseValidator):
             }
         )
 
-
+    def _add_retry_item(self, index: int, payload: dict, error: str):
+        self._retry_data.append({
+            "index": index,
+            "payload": payload,
+            "error": error,
+        })

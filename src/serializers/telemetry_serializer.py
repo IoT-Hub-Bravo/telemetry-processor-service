@@ -16,6 +16,7 @@ class TelemetryItemSerializer(JSONSerializer):
 
     OPTIONAL_FIELDS = {
         "ts": (str, type(None)),
+        "retry_count": int
     }
 
     def _validate_fields(self, data: dict) -> dict:
@@ -33,6 +34,11 @@ class TelemetryItemSerializer(JSONSerializer):
             ts = parse_iso8601_utc(ts_raw)
             if ts is None:
                 self._errors["ts"] = "Invalid ISO8601 timestamp."
+
+        retry_count = data.get("retry_count", 0)
+
+        if retry_count is not None and not isinstance(retry_count, int):
+            self._errors["retry_count"] = "Must be integer"
 
         # --- metrics ---
         if not isinstance(metrics, list):
@@ -64,6 +70,14 @@ class TelemetryItemSerializer(JSONSerializer):
 
         if metric_errors:
             self._errors["metrics"] = metric_errors
+
+        if retry_count is not None:
+            return {
+                "device_serial_id": serial,
+                "ts": ts,
+                "metrics": validated_metrics,
+                "retry_count": retry_count,
+            }
 
         return {
             "device_serial_id": serial,

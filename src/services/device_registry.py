@@ -15,7 +15,7 @@ def update_database(db: Session, payload: dict):
 
     created_at = None
     if payload.get("created_at"):
-        created_at = datetime.fromisoformat(payload["created_at"])
+        created_at = payload["created_at"]
 
     # --- Device ---
     device = device_repo.get_by_serial(serial)

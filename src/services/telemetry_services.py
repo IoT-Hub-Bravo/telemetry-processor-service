@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from src.services.telemetry_validator import TelemetryBatchValidator
 from src.database import db_engine
@@ -8,34 +9,41 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class TelemetryValidationResult:
-    validated_rows: list[dict] = field(default_factory=list)
-    errors: list[dict] = field(default_factory=list)
-    expired_rows: list[dict] = field(default_factory=list)
+    validated_data: list[dict] = field(default_factory=list)
+    invalid_data: list[dict] = field(default_factory=list)
+    retry_data: list[dict] = field(default_factory=list)
+    expired_data: list[dict] = field(default_factory=list)
 
 
 def telemetry_validate(payload: dict | list[dict]) -> TelemetryValidationResult:
-    if isinstance(payload, dict):
-        payload_list = [payload]
-    else:
-        payload_list = payload
+    payload_list = payload if isinstance(payload, list) else [payload]
 
     validator = TelemetryBatchValidator(payload=payload_list)
     validator.validate(engine=db_engine)
 
-    if validator.errors:
+    if validator.invalid_data:
         logger.warning(
-            "Telemetry validation completed with errors for %d items. Errors: %s",
-            len(payload),
-            validator.errors,
+            "Telemetry invalid items: %d",
+            len(validator.invalid_data),
+        )
+
+    if validator.retry_data:
+        logger.warning(
+            "Telemetry retry items: %d",
+            len(validator.retry_data),
         )
 
     logger.info(
-        "Telemetry validation completed. %d valid rows ready for creation.",
+        "Telemetry validation completed. valid=%d retry=%d invalid=%d expired=%d",
         len(validator.validated_data),
+        len(validator.retry_data),
+        len(validator.invalid_data),
+        len(validator.expired_data),
     )
 
     return TelemetryValidationResult(
-        validated_rows=validator.validated_data,
-        errors=validator.invalid_data,
-        expired_rows=validator.expired_data,
+        validated_data=validator.validated_data,
+        invalid_data=validator.invalid_data,
+        retry_data=validator.retry_data,
+        expired_data=validator.expired_data,
     )
