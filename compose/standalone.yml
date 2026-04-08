@@ -1,8 +1,41 @@
 name: ${COMPOSE_PROJECT_NAME:-telemetry-processor-service}
 
 services:
+  postgres:
+    image: postgres:15
+    container_name: telemetry_postgres
+    env_file:
+      - ../.env
+    environment:
+      - POSTGRES_USER=${DB_USER:-validator-user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-validator-password}
+      - POSTGRES_DB=${DB_NAME:-telemetry-validation}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot-hub-nw
+
+  redis:
+    image: redis:7
+    container_name: telemetry_redis
+    env_file:
+      - ../.env
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    restart: unless-stopped
+    networks:
+      - iot-hub-nw
 
 volumes:
+  postgres_data:
 
 networks:
   iot-hub-nw:
