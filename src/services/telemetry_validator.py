@@ -217,6 +217,12 @@ class TelemetryBatchValidator(BaseValidator):
                 fresh.append(item)
                 continue
 
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            else:
+                ts = ts.astimezone(timezone.utc)
+            item["ts"] = ts
+
             if ts < threshold:
                 expired.append(item)
             else:

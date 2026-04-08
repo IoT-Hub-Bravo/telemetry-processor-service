@@ -1,6 +1,6 @@
 from typing import List
 import logging
-
+    
 from src.producers.producers import (
     get_telemetry_raw_producer,
     get_telemetry_clean_producer,
@@ -12,7 +12,7 @@ from iot_hub_shared.kafka_kit.producer import KafkaProducer, ProduceResult
 
 logger = logging.getLogger(__name__)
 
-
+# TODO: Implement headers logic in KafkaProducer
 class TelemetryProducers:
     def __init__(self):
         self.raw: KafkaProducer = get_telemetry_raw_producer()

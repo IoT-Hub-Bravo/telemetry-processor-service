@@ -35,6 +35,6 @@ def get_telemetry_retry_producer() -> KafkaProducer:
     return KafkaProducer(
         config=ProducerConfig(),
         topic=telemetry_retry_topic,
-        poll_timeout=0.0,
+        poll_timeout=0.01,
     )
 

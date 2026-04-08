@@ -53,11 +53,11 @@ class ValidatorPayloadHandler:
             retry_count = payload.get("retry_count", 0)
 
             if retry_count >= MAX_RETRIES:
-                self.producers.produce_dlq({
+                self.producers.produce_dlq([{
                     **payload,
                     "error": "max_retries_exceeded",
                     "last_error": error,
-                })
+                }])
                 continue
 
             next_retry_count = retry_count + 1
@@ -69,7 +69,7 @@ class ValidatorPayloadHandler:
                 **payload,
                 "retry_count": next_retry_count,
             }
-
+            
             retry_telemetry.apply_async(
                 args=[retry_payload],
                 countdown=delay

@@ -31,13 +31,5 @@ for i in $(seq 1 $MAX_RETRIES); do
   sleep $RETRY_DELAY
 done
 
-echo "Running migrations..."
-python -m scripts.run_migrations || {
-  echo "Migration failed"
-  exit 1
-}
-
-trap "echo 'Shutting down...'; exit 0" SIGTERM SIGINT
-
 echo "Starting application..."
 exec "$@"
