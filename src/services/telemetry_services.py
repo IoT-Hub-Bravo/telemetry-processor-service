@@ -3,9 +3,8 @@ from dataclasses import dataclass, field
 from src.services.telemetry_validator import TelemetryBatchValidator
 from src.database import db_engine
 
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 @dataclass(slots=True)
 class TelemetryValidationResult:

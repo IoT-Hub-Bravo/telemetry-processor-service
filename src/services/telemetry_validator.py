@@ -70,7 +70,9 @@ class TelemetryBatchValidator(BaseValidator):
         if not device_serials:
             return
 
-        stmt = select(Device.serial_number).where(Device.serial_number.in_(device_serials))
+        stmt = select(Device.serial_number).where(
+            Device.serial_number.in_(device_serials)
+        )
         self._existing_devices = set(session.scalars(stmt).all())
 
     def _load_device_metrics(self, session: Session):
@@ -138,7 +140,9 @@ class TelemetryBatchValidator(BaseValidator):
                     )
                     continue
 
-                if not self._value_matches_data_type(value, device_metric_data["data_type"]):
+                if not self._value_matches_data_type(
+                    value, device_metric_data["data_type"]
+                ):
                     self._add_invalid_record(
                         index=index,
                         serial=serial,
@@ -192,7 +196,8 @@ class TelemetryBatchValidator(BaseValidator):
 
     def _value_matches_data_type(self, value: Any, data_type: str) -> bool:
         type_checkers = {
-            "numeric": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+            "numeric": lambda v: isinstance(v, (int, float))
+            and not isinstance(v, bool),
             "bool": lambda v: isinstance(v, bool),
             "str": lambda v: isinstance(v, str) and bool(v.strip()),
         }
@@ -201,7 +206,9 @@ class TelemetryBatchValidator(BaseValidator):
     def _normalize_unit(self, unit: str | None) -> str | None:
         if not unit:
             return None
-        return REVERSE_UNIT_ALIASES.get(unit.strip().lower().replace("°", ""), unit.strip().lower())
+        return REVERSE_UNIT_ALIASES.get(
+            unit.strip().lower().replace("°", ""), unit.strip().lower()
+        )
 
     def _split_expired(self) -> None:
         window_seconds = TELEMETRY_MAX_AGE_SECONDS
@@ -255,8 +262,10 @@ class TelemetryBatchValidator(BaseValidator):
         )
 
     def _add_retry_item(self, index: int, payload: dict, error: str):
-        self._retry_data.append({
-            "index": index,
-            "payload": payload,
-            "error": error,
-        })
+        self._retry_data.append(
+            {
+                "index": index,
+                "payload": payload,
+                "error": error,
+            }
+        )

@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from src.database import Base
 
+
 class Device(Base):
     __tablename__ = "devices"
 

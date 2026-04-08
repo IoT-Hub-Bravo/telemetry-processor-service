@@ -1,6 +1,6 @@
 from typing import List
 import logging
-    
+
 from src.producers.producers import (
     get_telemetry_raw_producer,
     get_telemetry_clean_producer,
@@ -11,6 +11,7 @@ from src.producers.producers import (
 from iot_hub_shared.kafka_kit.producer import KafkaProducer, ProduceResult
 
 logger = logging.getLogger(__name__)
+
 
 # TODO: Implement headers logic in KafkaProducer
 class TelemetryProducers:
@@ -26,14 +27,18 @@ class TelemetryProducers:
         errors = {}
         for index, record in enumerate(data):
             payload = {**record, "ts": record["ts"].isoformat()}
-            result = producer.produce(payload=payload, key=record.get("device_serial_id"))
+            result = producer.produce(
+                payload=payload, key=record.get("device_serial_id")
+            )
             if result == ProduceResult.ENQUEUED:
                 accepted += 1
             else:
                 errors[index] = getattr(result, "value", str(result))
         if errors:
             logger.warning("Producer errors: %s", errors)
-        logger.info("Produced %d/%d messages to topic %s", accepted, len(data), producer.topic)
+        logger.info(
+            "Produced %d/%d messages to topic %s", accepted, len(data), producer.topic
+        )
 
     def produce_raw(self, data: List[dict]):
         self._send(self.raw, data)

@@ -1,14 +1,9 @@
-from src.database import SessionLocal
-from src.services.device_registry import update_database
-from src.serializers.device_registry_serializer import DeviceRegistryBatchSerializer
-
 import logging
 from src.database import SessionLocal
 from src.services.device_registry import update_database
 from src.serializers.device_registry_serializer import DeviceRegistryBatchSerializer
 
 logger = logging.getLogger(__name__)
-
 
 class DeviceRegistryHandler:
     def handle(self, messages):

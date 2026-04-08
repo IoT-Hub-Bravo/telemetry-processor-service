@@ -8,16 +8,11 @@ class DeviceRepository:
 
     def get_by_serial(self, serial_number: str) -> Device | None:
         return (
-            self.db.query(Device)
-            .filter(Device.serial_number == serial_number)
-            .first()
+            self.db.query(Device).filter(Device.serial_number == serial_number).first()
         )
 
     def create(self, serial_number: str, created_at=None) -> Device:
-        device = Device(
-            serial_number=serial_number,
-            created_at=created_at
-        )
+        device = Device(serial_number=serial_number, created_at=created_at)
         self.db.add(device)
         self.db.flush()
         return device

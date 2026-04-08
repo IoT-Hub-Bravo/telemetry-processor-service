@@ -1,4 +1,3 @@
-
 from typing import Any
 
 from iot_hub_shared.serializer_kit.json_serializer import JSONSerializer
@@ -75,7 +74,8 @@ class DeviceRegistryItemSerializer(JSONSerializer):
             "created_at": created_at,
             "is_active": is_active,
             "metrics": validated_metrics,
-        }    
+        }
+
 
 class DeviceRegistryBatchSerializer(BaseSerializer):
     def _validate(self, data: Any):
@@ -90,11 +90,13 @@ class DeviceRegistryBatchSerializer(BaseSerializer):
             serializer = DeviceRegistryItemSerializer(item)
 
             if not serializer.is_valid():
-                invalid_items.append({
-                    "index": idx,
-                    "errors": serializer.errors,
-                    "payload": item,
-                })
+                invalid_items.append(
+                    {
+                        "index": idx,
+                        "errors": serializer.errors,
+                        "payload": item,
+                    }
+                )
                 continue
 
             valid_items.append(serializer.validated_data)

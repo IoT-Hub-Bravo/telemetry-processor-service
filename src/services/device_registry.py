@@ -1,4 +1,3 @@
-from datetime import datetime
 from sqlalchemy.orm import Session
 
 from src.repositories.device_repo import DeviceRepository
@@ -21,10 +20,7 @@ def update_database(db: Session, payload: dict):
     device = device_repo.get_by_serial(serial)
 
     if not device:
-        device = device_repo.create(
-            serial_number=serial,
-            created_at=created_at
-        )
+        device = device_repo.create(serial_number=serial, created_at=created_at)
 
     # --- Metrics ---
     for metric_data in payload.get("metrics", []):

@@ -7,17 +7,13 @@ from iot_hub_shared.utils_kit.normalization import parse_iso8601_utc
 from src.serializers.metric_serializer import MetricSerializer
 
 
-
 class TelemetryItemSerializer(JSONSerializer):
     REQUIRED_FIELDS = {
         "device_serial_id": str,
         "metrics": list,
     }
 
-    OPTIONAL_FIELDS = {
-        "ts": (str, type(None)),
-        "retry_count": int
-    }
+    OPTIONAL_FIELDS = {"ts": (str, type(None)), "retry_count": int}
 
     def _validate_fields(self, data: dict) -> dict:
         serial = normalize_str(data.get("device_serial_id"))
@@ -84,7 +80,8 @@ class TelemetryItemSerializer(JSONSerializer):
             "ts": ts,
             "metrics": validated_metrics,
         }
-    
+
+
 class TelemetryBatchSerializer(BaseSerializer):
     def _validate(self, data: Any):
         if not isinstance(data, list):

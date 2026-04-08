@@ -47,14 +47,14 @@ def test_missing_device(session, mock_checker):
     payload = [{"device_serial_id": "unknown", "ts": datetime.now(timezone.utc), "metrics": [{"name": "m1", "value": 1, "unit": None}]}]
     validator = TelemetryBatchValidator(payload)
     validator.validate(session.get_bind())
-    assert validator.invalid_data[0]["error"] == "device_not_found"
+    assert validator.retry_data[0]["error"] == "device_not_found"
 
 def test_metric_not_configured(session, mock_checker):
     device = create_device(session)
     payload = [{"device_serial_id": device.serial_number, "ts": datetime.now(timezone.utc), "metrics": [{"name": "m1", "value": 1, "unit": None}]}]
     validator = TelemetryBatchValidator(payload)
     validator.validate(session.get_bind())
-    assert validator.invalid_data[0]["error"] == "metric_not_configured"
+    assert validator.retry_data[0]["error"] == "metric_not_configured"
 
 def test_unit_mismatch(session, mock_checker):
     device = create_device(session)
@@ -131,7 +131,7 @@ def test_multiple_metrics_some_invalid(session, mock_checker):
                             {"name": m2.name, "value": 2, "unit": None}]}]
     validator = TelemetryBatchValidator(payload)
     validator.validate(session.get_bind())
-    assert any(e["error"] == "metric_not_configured" for e in validator.invalid_data)
+    assert any(e["error"] == "metric_not_configured" for e in validator.retry_data)
     assert len(validator.validated_data) == 1
 
 def test_multiple_devices(session, mock_checker):
@@ -156,7 +156,7 @@ def test_metric_name_empty(session, mock_checker):
     payload = [{"device_serial_id": d.serial_number, "ts": datetime.now(timezone.utc), "metrics": [{"name": "", "value": 1, "unit": None}]}]
     validator = TelemetryBatchValidator(payload)
     validator.validate(session.get_bind())
-    assert validator.invalid_data[0]["error"] == "metric_not_configured"
+    assert validator.retry_data[0]["error"] == "metric_not_configured"
 
 def test_value_blank_string_for_str_type(session, mock_checker):
     d = create_device(session)
