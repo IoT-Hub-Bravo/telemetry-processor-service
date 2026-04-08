@@ -1,9 +1,8 @@
-from typing import Any, List
+from typing import List
 import logging
 
-from src.serializers.telemetry_serializer import TelemetryBatchSerializer
-from src.services.telemetry_services import telemetry_validate
 from src.producers.producers import (
+    get_telemetry_raw_producer,
     get_telemetry_clean_producer,
     get_telemetry_dlq_producer,
     get_telemetry_expired_producer,
@@ -16,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class TelemetryProducers:
     def __init__(self):
+        self.raw: KafkaProducer = get_telemetry_raw_producer()
         self.clean: KafkaProducer = get_telemetry_clean_producer()
         self.dlq: KafkaProducer = get_telemetry_dlq_producer()
         self.expired: KafkaProducer = get_telemetry_expired_producer()
@@ -34,6 +34,9 @@ class TelemetryProducers:
         if errors:
             logger.warning("Producer errors: %s", errors)
         logger.info("Produced %d/%d messages to topic %s", accepted, len(data), producer.topic)
+
+    def produce_raw(self, data: List[dict]):
+        self._send(self.raw, data)
 
     def produce_clean(self, data: List[dict]):
         self._send(self.clean, data)

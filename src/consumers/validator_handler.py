@@ -1,10 +1,13 @@
 from typing import Any, List
 import logging
+import random
 
 from src.producers.producers_manager import TelemetryProducers
 from src.serializers.telemetry_serializer import TelemetryBatchSerializer
 from src.services.telemetry_services import telemetry_validate
 from src.config import MAX_RETRIES
+
+from src.tasks import retry_telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -44,33 +47,48 @@ class ValidatorPayloadHandler:
         if result.validated_data:
             self.producers.produce_clean(result.validated_data)
 
-        retry_payloads = []
-
         for item in result.retry_data:
             payload = item["payload"]
+            error = item.get("error")
             retry_count = payload.get("retry_count", 0)
 
             if retry_count >= MAX_RETRIES:
                 self.producers.produce_dlq({
                     **payload,
-                    "error": "max_retries_exceeded"
+                    "error": "max_retries_exceeded",
+                    "last_error": error,
                 })
                 continue
 
-            retry_payloads.append({
-                **payload,
-                "retry_count": retry_count + 1,
-            })
+            next_retry_count = retry_count + 1
 
-        if retry_payloads:
-            self.producers.produce_retry(retry_payloads)
+            # exponential backoff + jitter
+            delay = (2 ** retry_count) + random.randint(0, 3)
+
+            retry_payload = {
+                **payload,
+                "retry_count": next_retry_count,
+            }
+
+            retry_telemetry.apply_async(
+                args=[retry_payload],
+                countdown=delay
+            )
+
+            logger.info(
+                "scheduled_retry",
+                extra={
+                    "retry_count": next_retry_count,
+                    "delay": delay,
+                    "error": error,
+                },
+            )
 
         if result.invalid_data:
             self.producers.produce_dlq(result.invalid_data)
 
         if result.expired_data:
             self.producers.produce_expired(result.expired_data)
-
 
         logger.info(
             "telemetry_handler_completed",

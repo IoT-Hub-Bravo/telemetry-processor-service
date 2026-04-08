@@ -1,23 +1,63 @@
 name: ${COMPOSE_PROJECT_NAME:-telemetry-processor-service}
 
 services:
+  device-registry-sync:
+    build:
+      context: ..
+      dockerfile: docker/python/Dockerfile
+    image: iot-hub-kafka-device-registry-sync
+    container_name: kafka-device-registry-sync
+    command: ["python", "-m", "src.consumers.device_registry"]
+    env_file:
+      - ../.env
+    environment:
+      KAFKA_GROUP_ID: device-registry-sync
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - iot-hub-nw
+
   kafka-telemetry-clean-ws:
     build:
       context: ..
       dockerfile: docker/python/Dockerfile
-    env_file:
-      - ../.env
     image: iot-hub-kafka-telemetry-clean-ws
     container_name: kafka-telemetry-clean-ws
-    command: [ "python", "-m", "src.consumers.telemetry_validator" ]
+    command: ["python", "-m", "src.consumers.telemetry_validator"]
+    env_file:
+      - ../.env
     environment:
       KAFKA_GROUP_ID: telemetry-clean-ws
     depends_on:
       kafka:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - iot-hub-nw
+
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: docker/celery/Dockerfile
+    container_name: celery_worker
+    command: celery -A src.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
     networks:
       - iot-hub-nw
 
 networks:
   iot-hub-nw:
     external: true
+
+
