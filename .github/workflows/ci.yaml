@@ -125,7 +125,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [ test ]
     env:
-      DOCKERFILE_PATH: ./docker/python/Dockerfile
+      DOCKERFILE_PATH: ./docker/Dockerfile
 
     steps:
       - name: Get code
